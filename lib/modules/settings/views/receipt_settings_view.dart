@@ -978,6 +978,15 @@ class _ReceiptSettingsViewState extends State<ReceiptSettingsView> {
     _isPrinting.value = true;
     print('[ReceiptSettings] 开始测试打印');
 
+    // 🔧 修复：添加超时保护，防止状态永久卡住
+    // 即使出现未预期的错误，30秒后也会自动重置状态
+    Future.delayed(const Duration(seconds: 30), () {
+      if (_isPrinting.value) {
+        print('[ReceiptSettings] ⚠️ 检测到打印状态超时，强制重置');
+        _isPrinting.value = false;
+      }
+    });
+
     try {
       final mockData = ReceiptPrintData.mock();
       final printContent = await _templateService.generatePrintContent(
@@ -1004,6 +1013,7 @@ class _ReceiptSettingsViewState extends State<ReceiptSettingsView> {
         print('[ReceiptSettings] 权限请求结果: $hasPermission');
         
         if (!hasPermission) {
+          _isPrinting.value = false; // 🔧 修复：权限拒绝时立即重置状态
           Toast.error(message: '未授予USB设备权限，无法打印');
           return;
         }
