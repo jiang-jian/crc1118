@@ -3,6 +3,7 @@ import 'package:ailand_pos/data/services/nfc_service.dart';
 import 'package:ailand_pos/data/services/sunmi_printer_service.dart';
 import 'package:ailand_pos/data/services/external_printer_service.dart';
 import 'package:ailand_pos/data/services/receipt_template_service.dart';
+import 'package:ailand_pos/data/services/barcode_scanner_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -54,6 +55,8 @@ Future<void> initServices() async {
   await Get.putAsync(() => SunmiPrinterService().init());
   // 预先初始化外接打印机服务（全局单例）
   await Get.putAsync(() => ExternalPrinterService().init());
+  // 预先初始化条码扫描器服务（全局单例）
+  await Get.putAsync(() => BarcodeScannerService().init());
   // 预先初始化小票模板服务（全局单例）
   await Get.putAsync(() => ReceiptTemplateService().init());
 }
