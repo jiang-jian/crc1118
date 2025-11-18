@@ -52,9 +52,20 @@ class ExternalPrinterPlugin : FlutterPlugin, MethodCallHandler {
                         if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                             device?.let {
                                 Log.d(TAG, "USB permission granted for device: ${it.deviceName}")
+                                // 发送权限授予事件到Flutter
+                                channel.invokeMethod("onPermissionGranted", mapOf(
+                                    "deviceId" to it.deviceId.toString(),
+                                    "deviceName" to it.deviceName
+                                ))
                             }
                         } else {
-                            Log.d(TAG, "USB permission denied for device: ${device?.deviceName}")
+                            device?.let {
+                                Log.d(TAG, "USB permission denied for device: ${it.deviceName}")
+                                // 发送权限拒绝事件到Flutter
+                                channel.invokeMethod("onPermissionDenied", mapOf(
+                                    "deviceId" to it.deviceId.toString()
+                                ))
+                            }
                         }
                     }
                 }
@@ -248,8 +259,8 @@ class ExternalPrinterPlugin : FlutterPlugin, MethodCallHandler {
             Log.d(TAG, "Requesting permission for device: ${device.deviceName}")
             
             // 注意：权限结果通过广播接收器处理
-            // 这里先返回true，实际权限状态在广播中处理
-            result.success(true)
+            // 返回false表示需要等待用户授权，实际权限状态通过事件通知Flutter
+            result.success(false)
         } catch (e: Exception) {
             Log.e(TAG, "Error requesting permission: ${e.message}", e)
             result.error("PERMISSION_ERROR", "Failed to request permission: ${e.message}", null)

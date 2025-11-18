@@ -76,6 +76,19 @@ class ExternalPrinterService extends GetxService {
         await scanUsbPrinters();
         break;
 
+      case 'onPermissionGranted':
+        final deviceId = call.arguments['deviceId'] as String?;
+        final deviceName = call.arguments['deviceName'] as String?;
+        _addLog('✅ 权限已授予: $deviceName ($deviceId)');
+        // 权限授予后，重新扫描设备列表以更新状态
+        await scanUsbPrinters();
+        break;
+
+      case 'onPermissionDenied':
+        final deviceId = call.arguments['deviceId'] as String?;
+        _addLog('❌ 权限被拒绝: $deviceId');
+        break;
+
       default:
         _addLog('未知回调方法: ${call.method}');
     }
