@@ -62,9 +62,9 @@ class _QrScannerConfigViewState extends State<QrScannerConfigView>
         color: Colors.white,
         child: Row(
           children: [
-            // 左列：设备信息 (43%)
+            // 左列：设备信息 (30%)
             Expanded(
-              flex: 43,
+              flex: 30,
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 48.w, vertical: 40.h),
                 decoration: BoxDecoration(
@@ -92,9 +92,9 @@ class _QrScannerConfigViewState extends State<QrScannerConfigView>
               ),
             ),
 
-            // 右列：数据展示 (25%)
+            // 右列：数据展示 (38%)
             Expanded(
-              flex: 25,
+              flex: 38,
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 48.w, vertical: 40.h),
                 color: Colors.white,
