@@ -233,6 +233,11 @@ class BarcodeScannerService extends GetxService {
       _addLog('✓ 扫码成功: ${result.type}');
       _addLog('  内容: ${result.content}');
       _addLog('  长度: ${result.length} 字符');
+      _addLog('  时间: ${_formatLogTimestamp(result.timestamp)}');
+      _addLog('  有效: ${result.isValid ? "是" : "否"}');
+      if (result.rawData != null && result.rawData != result.content) {
+        _addLog('  原始: ${result.rawData}');
+      }
     } catch (e) {
       _addLog('✗ 处理扫码结果失败: $e');
     }
@@ -287,5 +292,11 @@ class BarcodeScannerService extends GetxService {
     if (debugLogs.length > 100) {
       debugLogs.removeRange(100, debugLogs.length);
     }
+  }
+
+  /// 格式化日志时间戳（用于扫描结果）
+  String _formatLogTimestamp(DateTime timestamp) {
+    return '${timestamp.year}-${timestamp.month.toString().padLeft(2, '0')}-${timestamp.day.toString().padLeft(2, '0')} '
+        '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}:${timestamp.second.toString().padLeft(2, '0')}.${timestamp.millisecond.toString().padLeft(3, '0')}';
   }
 }

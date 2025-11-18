@@ -525,6 +525,7 @@ class _QrScannerConfigViewState extends State<QrScannerConfigView>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // 扫描数据标题
         Text(
           '扫描数据',
           style: TextStyle(
@@ -536,13 +537,23 @@ class _QrScannerConfigViewState extends State<QrScannerConfigView>
 
         SizedBox(height: 40.h),
 
+        // 扫描数据展示区（上半部分）
         Expanded(
+          flex: 5,
           child: Obx(() {
             final scanData = _scannerService.scanData.value;
             return scanData != null
                 ? _buildScannedDataDisplay(scanData)
                 : _buildDataPlaceholder();
           }),
+        ),
+
+        SizedBox(height: 32.h),
+
+        // 调试日志区（下半部分）
+        Expanded(
+          flex: 5,
+          child: _buildDebugLogPanel(),
         ),
       ],
     );
@@ -812,5 +823,230 @@ class _QrScannerConfigViewState extends State<QrScannerConfigView>
   String _formatTimestamp(DateTime timestamp) {
     return '${timestamp.year}-${timestamp.month.toString().padLeft(2, '0')}-${timestamp.day.toString().padLeft(2, '0')} '
         '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}:${timestamp.second.toString().padLeft(2, '0')}';
+  }
+
+  /// 构建调试日志面板
+  Widget _buildDebugLogPanel() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundGrey,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+        border: Border.all(color: AppTheme.borderColor, width: 1.w),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 日志标题栏
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(AppTheme.borderRadiusMedium),
+                topRight: Radius.circular(AppTheme.borderRadiusMedium),
+              ),
+              border: Border(
+                bottom: BorderSide(color: AppTheme.borderColor, width: 1.w),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.article_outlined,
+                  size: 22.sp,
+                  color: AppTheme.textSecondary,
+                ),
+                SizedBox(width: 12.w),
+                Text(
+                  '调试日志',
+                  style: TextStyle(
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                // 日志数量
+                Obx(() {
+                  final logCount = _scannerService.debugLogs.length;
+                  return Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Text(
+                      '$logCount 条',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  );
+                }),
+                SizedBox(width: 16.w),
+                // 清空按钮
+                SizedBox(
+                  height: 36.h,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      _scannerService.clearLogs();
+                    },
+                    icon: Icon(Icons.delete_outline, size: 18.sp),
+                    label: Text(
+                      '清空',
+                      style: TextStyle(fontSize: 15.sp),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                      side: BorderSide(color: AppTheme.borderColor),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 日志内容区（可滚动）
+          Expanded(
+            child: Obx(() {
+              final logs = _scannerService.debugLogs;
+              if (logs.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 48.sp,
+                        color: AppTheme.textTertiary,
+                      ),
+                      SizedBox(height: 16.h),
+                      Text(
+                        '暂无日志记录',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          color: AppTheme.textTertiary,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        '扫描操作日志将显示在此处',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: AppTheme.textTertiary.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.separated(
+                padding: EdgeInsets.all(16.w),
+                itemCount: logs.length,
+                separatorBuilder: (context, index) => SizedBox(height: 8.h),
+                itemBuilder: (context, index) {
+                  final log = logs[index];
+                  return _buildLogItem(log);
+                },
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建单条日志项
+  Widget _buildLogItem(String log) {
+    // 解析日志格式: [HH:mm:ss] message
+    final hasTimestamp = log.startsWith('[');
+    String timestamp = '';
+    String message = log;
+
+    if (hasTimestamp) {
+      final timestampEnd = log.indexOf(']');
+      if (timestampEnd != -1) {
+        timestamp = log.substring(1, timestampEnd);
+        message = log.substring(timestampEnd + 2);
+      }
+    }
+
+    // 判断日志类型（根据emoji或关键词）
+    Color logColor = AppTheme.textSecondary;
+    Color bgColor = Colors.white;
+    IconData? iconData;
+
+    if (message.contains('✓') || message.contains('成功')) {
+      logColor = AppTheme.successColor;
+      bgColor = AppTheme.successColor.withOpacity(0.05);
+      iconData = Icons.check_circle_outline;
+    } else if (message.contains('✗') || message.contains('失败') || message.contains('错误')) {
+      logColor = AppTheme.errorColor;
+      bgColor = AppTheme.errorColor.withOpacity(0.05);
+      iconData = Icons.error_outline;
+    } else if (message.contains('⚠️') || message.contains('警告')) {
+      logColor = AppTheme.warningColor;
+      bgColor = AppTheme.warningColor.withOpacity(0.05);
+      iconData = Icons.warning_amber_outlined;
+    } else if (message.contains('🔍') || message.contains('扫描')) {
+      logColor = AppTheme.infoColor;
+      bgColor = AppTheme.infoColor.withOpacity(0.05);
+      iconData = Icons.search;
+    } else if (message.contains('📱') || message.contains('🔌')) {
+      logColor = AppTheme.primaryColor;
+      bgColor = AppTheme.primaryColor.withOpacity(0.05);
+      iconData = Icons.devices;
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: logColor.withOpacity(0.2), width: 1.w),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 图标
+          if (iconData != null) ..[
+            Icon(
+              iconData,
+              size: 18.sp,
+              color: logColor,
+            ),
+            SizedBox(width: 12.w),
+          ],
+
+          // 时间戳
+          if (hasTimestamp) ..[
+            Text(
+              timestamp,
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: AppTheme.textTertiary,
+                fontFamily: 'monospace',
+              ),
+            ),
+            SizedBox(width: 12.w),
+          ],
+
+          // 日志内容
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: logColor,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
