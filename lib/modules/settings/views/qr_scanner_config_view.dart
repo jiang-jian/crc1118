@@ -253,33 +253,41 @@ class _QrScannerConfigViewState extends State<QrScannerConfigView>
             isConnected: isConnected,
             onTap: () async {
               if (!isConnected) {
-                // 请求权限
-                final granted = await _scannerService.requestPermission(device.deviceId);
-                
-                if (granted) {
-                  // 授权成功后，等待设备列表更新
-                  await Future.delayed(const Duration(milliseconds: 300));
-                  
-                  // 自动选择该设备（从更新后的列表中获取）
-                  final updatedDevice = _scannerService.detectedScanners
-                      .firstWhereOrNull((d) => d.deviceId == device.deviceId);
-                  
-                  if (updatedDevice != null && updatedDevice.isConnected) {
-                    _scannerService.selectedScanner.value = updatedDevice;
-                    await _scannerService.startListening();
+                // 请求权限（异步）
+                _scannerService.requestPermission(device.deviceId).then((granted) async {
+                  if (granted) {
+                    // 权限已立即授予（之前已授权过）
+                    final updatedDevice = _scannerService.detectedScanners
+                        .firstWhereOrNull((d) => d.deviceId == device.deviceId);
                     
-                    // 显示成功提示
+                    if (updatedDevice != null && updatedDevice.isConnected) {
+                      _scannerService.selectedScanner.value = updatedDevice;
+                      await _scannerService.startListening();
+                      
+                      Get.snackbar(
+                        '授权成功',
+                        '设备 "${updatedDevice.deviceName}" 已连接并开始监听',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: AppTheme.successColor.withValues(alpha: 0.9),
+                        colorText: Colors.white,
+                        icon: Icon(Icons.check_circle, color: Colors.white),
+                        duration: const Duration(seconds: 2),
+                      );
+                    }
+                  } else {
+                    // 权限请求已发起，等待用户在系统弹窗中授权
+                    // onPermissionGranted 事件会自动触发设备列表更新
                     Get.snackbar(
-                      '授权成功',
-                      '设备 "${updatedDevice.deviceName}" 已连接并开始监听',
+                      '等待授权',
+                      '请在系统弹窗中允许访问USB设备',
                       snackPosition: SnackPosition.BOTTOM,
-                      backgroundColor: AppTheme.successColor.withValues(alpha: 0.9),
+                      backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.9),
                       colorText: Colors.white,
-                      icon: Icon(Icons.check_circle, color: Colors.white),
+                      icon: Icon(Icons.info, color: Colors.white),
                       duration: const Duration(seconds: 2),
                     );
                   }
-                }
+                });
               } else {
                 // 选择设备并开始监听
                 _scannerService.selectedScanner.value = device;

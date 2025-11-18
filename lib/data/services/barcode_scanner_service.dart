@@ -212,6 +212,12 @@ class BarcodeScannerService extends GetxService {
         case 'onDeviceDetached':
           _handleDeviceDetached(call.arguments);
           break;
+        case 'onPermissionGranted':
+          _handlePermissionGranted(call.arguments);
+          break;
+        case 'onPermissionDenied':
+          _handlePermissionDenied(call.arguments);
+          break;
         default:
           _addLog('⚠️ 未知方法调用: ${call.method}');
       }
@@ -278,6 +284,34 @@ class BarcodeScannerService extends GetxService {
       scanUsbScanners();
     } catch (e) {
       _addLog('✗ 处理设备断开失败: $e');
+    }
+  }
+
+  /// 处理权限授予
+  void _handlePermissionGranted(dynamic arguments) {
+    try {
+      final map = arguments as Map<dynamic, dynamic>;
+      final deviceId = map['deviceId'] as String?;
+      final deviceName = map['deviceName'] as String?;
+      
+      _addLog('✅ 权限已授予: ${deviceName ?? deviceId}');
+      
+      // 自动重新扫描设备列表以更新连接状态
+      scanUsbScanners();
+    } catch (e) {
+      _addLog('✗ 处理权限授予失败: $e');
+    }
+  }
+
+  /// 处理权限拒绝
+  void _handlePermissionDenied(dynamic arguments) {
+    try {
+      final map = arguments as Map<dynamic, dynamic>;
+      final deviceId = map['deviceId'] as String?;
+      
+      _addLog('❌ 权限被拒绝: $deviceId');
+    } catch (e) {
+      _addLog('✗ 处理权限拒绝失败: $e');
     }
   }
 

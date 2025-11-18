@@ -83,9 +83,18 @@ class BarcodeScannerPlugin : FlutterPlugin, MethodCallHandler {
                         if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                             device?.let {
                                 Log.d(TAG, "USB permission granted for device: ${it.deviceName}")
+                                // 通知Flutter层权限已授予，触发重新扫描
+                                channel.invokeMethod("onPermissionGranted", mapOf(
+                                    "deviceId" to it.deviceName,
+                                    "deviceName" to (it.productName ?: it.deviceName)
+                                ))
                             }
                         } else {
                             Log.d(TAG, "USB permission denied for device: ${device?.deviceName}")
+                            // 通知Flutter层权限被拒绝
+                            channel.invokeMethod("onPermissionDenied", mapOf(
+                                "deviceId" to device?.deviceName
+                            ))
                         }
                     }
                 }
