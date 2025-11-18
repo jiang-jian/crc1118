@@ -300,7 +300,7 @@ class CheckoutPage extends StatelessWidget {
                 final item = controller.cartItems[index];
                 return ListTile(
                   title: Text(item['name'] as String),
-                  subtitle: Text('条码: ${item['barcode']}')
+                  subtitle: Text('条码: ${item['barcode']}'),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
