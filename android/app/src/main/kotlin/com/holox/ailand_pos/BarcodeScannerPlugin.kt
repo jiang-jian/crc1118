@@ -487,6 +487,59 @@ class BarcodeScannerPlugin : FlutterPlugin, MethodCallHandler {
     }
     
     /**
+     * 直接处理键盘事件（从MainActivity调用）
+     * 返回true表示事件已处理，false表示需要系统继续处理
+     */
+    fun handleKeyEventDirect(event: KeyEvent): Boolean {
+        // 只处理按键按下事件
+        if (event.action != KeyEvent.ACTION_DOWN) {
+            return false
+        }
+        
+        // 如果未在监听状态，不拦截事件
+        if (!isListening) {
+            return false
+        }
+        
+        val currentTime = System.currentTimeMillis()
+        
+        // 检查超时（新的扫码开始）
+        if (lastKeyTime > 0 && (currentTime - lastKeyTime) > scanTimeout) {
+            if (scanBuffer.isNotEmpty()) {
+                // 处理上一次的扫码数据
+                processScanData()
+            }
+            scanBuffer.clear()
+        }
+        
+        lastKeyTime = currentTime
+        
+        // 处理按键
+        when (event.keyCode) {
+            KeyEvent.KEYCODE_ENTER -> {
+                // 回车键表示扫码结束
+                if (scanBuffer.isNotEmpty()) {
+                    processScanData()
+                    scanBuffer.clear()
+                }
+                return true  // 拦截回车键
+            }
+            else -> {
+                // 尝试获取字符
+                val char = getCharFromKeyCode(event.keyCode)
+                if (char != null) {
+                    scanBuffer.append(char)
+                    Log.d(TAG, "Key captured: ${event.keyCode} -> '$char', buffer: $scanBuffer")
+                    return true  // 拦截已识别的字符键
+                }
+            }
+        }
+        
+        // 未识别的按键，让系统继续处理
+        return false
+    }
+    
+    /**
      * 从键码获取字符
      */
     private fun getCharFromKeyCode(keyCode: Int): Char? {

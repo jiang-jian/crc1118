@@ -4,8 +4,12 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import android.os.Bundle
 import android.view.WindowManager
+import android.view.KeyEvent
+import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    private var barcodeScannerPlugin: BarcodeScannerPlugin? = null
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -29,6 +33,23 @@ class MainActivity : FlutterActivity() {
         flutterEngine.plugins.add(ExternalCardReaderPlugin())
         
         // 注册 Barcode Scanner Plugin（USB条码扫描器）
-        flutterEngine.plugins.add(BarcodeScannerPlugin())
+        barcodeScannerPlugin = BarcodeScannerPlugin()
+        flutterEngine.plugins.add(barcodeScannerPlugin!!)
+    }
+    
+    /**
+     * 拦截系统键盘事件，转发给条码扫描器插件
+     * 这样USB扫描器模拟的键盘输入就能被正确捕获
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // 先尝试让条码扫描器插件处理
+        barcodeScannerPlugin?.let { plugin ->
+            if (plugin.handleKeyEventDirect(event)) {
+                return true  // 事件已被扫描器处理，拦截
+            }
+        }
+        
+        // 否则让系统正常处理
+        return super.dispatchKeyEvent(event)
     }
 }
