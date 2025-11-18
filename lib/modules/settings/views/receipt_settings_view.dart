@@ -1001,25 +1001,25 @@ class _ReceiptSettingsViewState extends State<ReceiptSettingsView> {
       print('[ReceiptSettings] 权限检查结果: $alreadyHasPermission');
 
       if (!alreadyHasPermission) {
-        // 没有权限：异步请求（不阻塞UI）
+        // 没有权限：显示Toast提示
+        Toast.info(message: '正在请求打印机访问权限\n请在弹出的对话框中点击"允许"');
+
+        // 延迟让Toast显示完整
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        // 请求USB设备权限（弹出系统对话框）
         print('[ReceiptSettings] 请求USB权限...');
-        _printerService.requestPermission(device).then((granted) async {
-          if (granted) {
-            // 权限已立即授予（之前已授权过）
-            print('[ReceiptSettings] 权限已授予，继续打印');
-            await _executePrint(device, printContent);
-          } else {
-            // 权限请求已发起，等待用户在系统弹窗中授权
-            // 立即重置按钮状态，让用户可以再次点击
-            _isPrinting.value = false;
-            Toast.info(message: '正在请求打印机访问权限\n请在弹出的对话框中点击"允许"');
-            print('[ReceiptSettings] 等待用户授权，按钮已恢复');
-          }
-        });
-        return; // 立即返回，不阻塞UI
+        final hasPermission = await _printerService.requestPermission(device);
+        print('[ReceiptSettings] 权限请求结果: $hasPermission');
+        
+        if (!hasPermission) {
+          _isPrinting.value = false;
+          Toast.info(message: '请在系统对话框中点击"允许"后重试');
+          return;
+        }
       }
 
-      // 已有权限，直接打印
+      // 已有权限，执行打印
       await _executePrint(device, printContent);
     } catch (e, stackTrace) {
       print('[ReceiptSettings] 测试打印异常: $e');
