@@ -254,7 +254,32 @@ class _QrScannerConfigViewState extends State<QrScannerConfigView>
             onTap: () async {
               if (!isConnected) {
                 // 请求权限
-                await _scannerService.requestPermission(device.deviceId);
+                final granted = await _scannerService.requestPermission(device.deviceId);
+                
+                if (granted) {
+                  // 授权成功后，等待设备列表更新
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  
+                  // 自动选择该设备（从更新后的列表中获取）
+                  final updatedDevice = _scannerService.detectedScanners
+                      .firstWhereOrNull((d) => d.deviceId == device.deviceId);
+                  
+                  if (updatedDevice != null && updatedDevice.isConnected) {
+                    _scannerService.selectedScanner.value = updatedDevice;
+                    await _scannerService.startListening();
+                    
+                    // 显示成功提示
+                    Get.snackbar(
+                      '授权成功',
+                      '设备 "${updatedDevice.deviceName}" 已连接并开始监听',
+                      snackPosition: SnackPosition.BOTTOM,
+                      backgroundColor: AppTheme.successColor.withValues(alpha: 0.9),
+                      colorText: Colors.white,
+                      icon: Icon(Icons.check_circle, color: Colors.white),
+                      duration: const Duration(seconds: 2),
+                    );
+                  }
+                }
               } else {
                 // 选择设备并开始监听
                 _scannerService.selectedScanner.value = device;
@@ -279,7 +304,7 @@ class _QrScannerConfigViewState extends State<QrScannerConfigView>
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: isConnected ? onTap : null,
           borderRadius: BorderRadius.circular(AppTheme.borderRadiusRound),
           child: Container(
             padding: EdgeInsets.all(20.w),
@@ -339,6 +364,33 @@ class _QrScannerConfigViewState extends State<QrScannerConfigView>
                         ),
                       ),
                     ),
+                    // 授权按钮（仅在未连接时显示）
+                    if (!isConnected) ..[
+                      SizedBox(width: 12.w),
+                      SizedBox(
+                        height: 32.h,
+                        child: ElevatedButton.icon(
+                          onPressed: onTap,
+                          icon: Icon(Icons.vpn_key, size: 16.sp),
+                          label: Text(
+                            '授权',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16.w,
+                              vertical: 0,
+                            ),
+                            backgroundColor: AppTheme.primaryColor,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 SizedBox(height: 12.h),
@@ -357,6 +409,40 @@ class _QrScannerConfigViewState extends State<QrScannerConfigView>
                     style: TextStyle(
                       fontSize: 13.sp,
                       color: AppTheme.textTertiary,
+                    ),
+                  ),
+                ],
+                // 未连接时的提示信息
+                if (!isConnected) ...[
+                  SizedBox(height: 12.h),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                    decoration: BoxDecoration(
+                      color: AppTheme.warningColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6.r),
+                      border: Border.all(
+                        color: AppTheme.warningColor.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 16.sp,
+                          color: AppTheme.warningColor,
+                        ),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Text(
+                            '点击右侧「授权」按钮以连接设备',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: AppTheme.warningColor,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
