@@ -590,8 +590,25 @@ class ExternalPrinterView extends StatelessWidget {
       await service.scanUsbPrinters();
 
       // 检查设备是否还在列表中
+      // 🔧 FIX: 使用 vendorId + productId + serialNumber 匹配（稳定的硬件标识）
+      // deviceId 在拔插后会变化，不能用于匹配
       final currentDevice = service.detectedPrinters.firstWhereOrNull(
-        (d) => d.deviceId == device.deviceId,
+        (d) {
+          // 必须vendorId和productId匹配（硬件型号）
+          if (d.vendorId != device.vendorId || 
+              d.productId != device.productId) {
+            return false;
+          }
+          
+          // 如果原设备有序列号，必须序列号也匹配（区分同型号设备）
+          if (device.serialNumber != null && 
+              device.serialNumber!.isNotEmpty) {
+            return d.serialNumber == device.serialNumber;
+          }
+          
+          // 没有序列号，vendorId+productId匹配即可
+          return true;
+        },
       );
 
       if (currentDevice == null) {
